@@ -10,32 +10,64 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            artifact: rustydotmatrix-windows-x86_64
-            bin: rustydotmatrix.exe
+  windows:
+    name: Windows build
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: dtolnay/rust-toolchain@stable
-
       - uses: Swatinem/rust-cache@v2
-
       - name: Build
-        run: cargo build --release
-
-      - name: Test (ESC/P parser)
-        run: cargo test --release
-
-      - name: Upload binary
+        run: cargo build --release --bins
+      - name: Upload RetroImpact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: target/release/${{ matrix.bin }}
+          name: retroimpact-windows-x86_64
+          path: |
+            target/release/rustydotmatrix.exe
+            target/release/ri-render.exe
           if-no-files-found: error
+
+  # Tests, shader validation and a real GPU render (software Vulkan: lavapipe), with the pictures kept as an artifact.
+  test-and-render:
+    name: Tests + headless GPU render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libgtk-3-dev libxkbcommon-dev libwayland-dev libx11-dev libxcb1-dev libvulkan1 mesa-vulkan-drivers vulkan-tools
+      - name: Vulkan devices
+        run: vulkaninfo --summary || true
+      - name: Unit tests (emulation parity, WGSL validation, writers)
+        run: cargo test --release
+      - name: Build
+        run: cargo build --release --bins
+      - name: GPU render
+        env:
+          WGPU_BACKEND: vulkan
+        run: |
+          mkdir -p renders
+          B=target/release/ri-render
+          $B --selftest -o renders/selftest_tiles.png
+          $B -o renders/sample_default.png --dpi 150
+          $B -o renders/sample_clean.png --dpi 150 --clean
+          $B -o renders/sample_worn.png --dpi 150 --look 2
+          $B -o renders/sample_greenbar_rot90.png --dpi 120 --look 4 --rotate 90
+          $B -o renders/sample.pdf --dpi 150
+          $B -o renders/sample.tif --dpi 150
+          for f in tests/golden/inputs/data_geos_imagewriter_text.bin tests/golden/inputs/data_geos_okimate20_colour.bin tests/golden/inputs/data_applewin_printshop_colour.bin; do
+            n=$(basename "$f" .bin)
+            $B "$f" -o "renders/$n.png" --dpi 150 --look 1 || true
+          done
+          ls -la renders
+      - name: Upload renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: renders
+          path: renders/
+          if-no-files-found: warn

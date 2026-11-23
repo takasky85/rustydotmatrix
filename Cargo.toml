@@ -2,12 +2,26 @@
 name = "rustydotmatrix"
 version = "0.1.0"
 edition = "2021"
-description = "Proof of concept: view raw 9-pin dot matrix printer (ESC/P) data as dots, with zoom. Rust + egui + wgpu."
+description = "RetroImpact: raw 1980s dot-matrix printer data to PDF/TIFF/PNG that looks printed on the real thing. Rust + egui + wgpu."
+default-run = "rustydotmatrix"
+
+[lib]
+name = "retroimpact"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rustydotmatrix"
+path = "src/main.rs"
+
+[[bin]]
+name = "ri-render"
+path = "src/bin/ri_render.rs"
 
 [dependencies]
 # eframe 0.32 is pinned on purpose: the egui API changes between releases.
 eframe = { version = "0.32", default-features = false, features = [
     "default_fonts",
+    "persistence",
     "wgpu",
     "x11",
     "wayland",
@@ -18,7 +32,17 @@ rfd = "0.15"
 # (the app panics with "No wgpu backend feature ... was enabled"), so turn the
 # platform backends on explicitly. Keep this major version equal to the one
 # eframe 0.32 uses.
-wgpu = { version = "25", default-features = false, features = ["dx12", "vulkan", "metal"] }
+wgpu = { version = "25", default-features = false, features = ["wgsl", "dx12", "vulkan", "metal"] }
+bytemuck = { version = "1", features = ["derive"] }
+pollster = "0.4"
+ab_glyph = "0.2"
+png = "0.17"
+jpeg-encoder = "0.6"
+flate2 = "1"
+
+[dev-dependencies]
+# validates render.wgsl in `cargo test` (same major version as the naga inside wgpu 25)
+naga = { version = "25", features = ["wgsl-in"] }
 
 # Keep debug builds usable: optimise dependencies (egui, wgpu) even in dev.
 [profile.dev.package."*"]

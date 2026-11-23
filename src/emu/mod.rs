@@ -13,4 +13,5 @@ pub mod settings;
 pub mod analyze;
 pub mod pageset;
 pub mod emulate;
+#[cfg(test)]
 pub mod parity_tests;
