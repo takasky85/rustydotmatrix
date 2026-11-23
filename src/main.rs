@@ -1,5 +1,5 @@
-// Hide the console window on Windows release builds.
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// NOTE: the console window is deliberately left visible on Windows while we
+// debug startup problems. Re-add `#![windows_subsystem = "windows"]` later.
 
 mod escp;
 mod font_data;
@@ -277,7 +277,23 @@ impl eframe::App for App {
     }
 }
 
-fn main() -> eframe::Result {
+/// Make startup failures visible: console, a text file next to the working
+/// directory, and a message box.
+fn show_error(msg: &str) {
+    eprintln!("{msg}");
+    let _ = std::fs::write("rustydotmatrix-error.txt", msg);
+    let _ = rfd::MessageDialog::new()
+        .set_level(rfd::MessageLevel::Error)
+        .set_title("RustyDotMatrix")
+        .set_description(msg)
+        .show();
+}
+
+fn main() {
+    std::panic::set_hook(Box::new(|info| {
+        show_error(&format!("RustyDotMatrix crashed:\n{info}"));
+    }));
+
     let options = eframe::NativeOptions {
         renderer: eframe::Renderer::Wgpu,
         viewport: egui::ViewportBuilder::default()
@@ -285,9 +301,12 @@ fn main() -> eframe::Result {
             .with_title("RustyDotMatrix"),
         ..Default::default()
     };
-    eframe::run_native(
+    let result = eframe::run_native(
         "RustyDotMatrix",
         options,
         Box::new(|_cc| Ok(Box::new(App::default()))),
-    )
+    );
+    if let Err(e) = result {
+        show_error(&format!("RustyDotMatrix failed to start:\n{e}"));
+    }
 }
