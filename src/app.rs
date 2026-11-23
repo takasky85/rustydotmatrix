@@ -270,7 +270,7 @@ impl App {
                     changed |= ui.selectable_value(&mut self.emu.codepage, (*k).into(), *label).changed();
                 }
             });
-            let mut nl = |ui: &mut egui::Ui, label: &str, v: &mut Option<bool>| {
+            let nl = |ui: &mut egui::Ui, label: &str, v: &mut Option<bool>| {
                 let txt = match v {
                     None => "auto",
                     Some(true) => "on",
@@ -700,7 +700,7 @@ impl eframe::App for App {
                         for p in self.recent.clone() {
                             if ui.button(p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()).on_hover_text(p.display().to_string()).clicked() {
                                 self.open_path(ctx, &p);
-                                ui.close_menu();
+                                ui.close();
                             }
                         }
                     });

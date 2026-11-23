@@ -6,7 +6,6 @@
 //! rectangle cut out of a full-page render.
 use super::dots::{GpuDot, SheetDots};
 use crate::emu::settings::RenderSettings;
-use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 pub const COV_FMT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
@@ -59,8 +58,8 @@ struct Scratch {
 }
 
 pub struct Renderer {
-    pub device: Arc<wgpu::Device>,
-    pub queue: Arc<wgpu::Queue>,
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
     bgl_params: wgpu::BindGroupLayout,
     bgl_cov: wgpu::BindGroupLayout,
     bgl_src: wgpu::BindGroupLayout,
@@ -132,7 +131,7 @@ pub fn margin_px(sheet: &SheetDots, s: &RenderSettings, ppi: f32) -> u32 {
 }
 
 impl Renderer {
-    pub fn new(device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>) -> Self {
+    pub fn new(device: wgpu::Device, queue: wgpu::Queue) -> Self {
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("retroimpact.wgsl"),
             source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(SHADER_SRC)),
@@ -251,7 +250,7 @@ impl Renderer {
             trace: wgpu::Trace::Off,
         }))
         .ok()?;
-        Some(Renderer::new(Arc::new(device), Arc::new(queue)))
+        Some(Renderer::new(device, queue))
     }
 
     pub fn max_dim(&self) -> u32 {
@@ -451,7 +450,7 @@ impl Renderer {
                 p.draw(0..6, lo as u32..hi as u32);
             }
         }
-        let mut full = |enc: &mut wgpu::CommandEncoder, label: &str, target: &wgpu::TextureView, pl: &wgpu::RenderPipeline, bg1: &wgpu::BindGroup, scissor: (u32, u32)| {
+        let full = |enc: &mut wgpu::CommandEncoder, label: &str, target: &wgpu::TextureView, pl: &wgpu::RenderPipeline, bg1: &wgpu::BindGroup, scissor: (u32, u32)| {
             let mut p = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some(label),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
