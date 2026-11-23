@@ -119,6 +119,25 @@ fn main() {
             }
         }
         println!("tile seam check: max difference {max}, {bad} bytes differ by more than 3");
+        // a rough look at the pixels in the log (the CI artifact is not always reachable): luma ramp, 1 px per column, 2 per row
+        let ramp: &[u8] = b"@%#*+=-:. ";
+        let (x0, y0, cw, ch) = (20usize, 4usize, 110usize, 64usize);
+        println!("ascii crop x={x0} y={y0} ({cw}x{ch} px)");
+        for row in (0..ch).step_by(2) {
+            let mut line = String::new();
+            for col in 0..cw {
+                let (x, y) = (x0 + col, y0 + row);
+                if x >= w as usize || y >= h as usize {
+                    break;
+                }
+                let i = (y * w as usize + x) * 4;
+                let l = (299 * whole[i] as u32 + 587 * whole[i + 1] as u32 + 114 * whole[i + 2] as u32) / 1000;
+                line.push(ramp[(l as usize * 9 / 255).min(9)] as char);
+            }
+            println!("|{line}|");
+        }
+        let dark = whole.chunks_exact(4).filter(|p| (p[0] as u32 + p[1] as u32 + p[2] as u32) < 3 * 100).count();
+        println!("dark pixels: {:.2}%", dark as f64 * 100.0 / (whole.len() / 4) as f64);
         let mut enc = png::Encoder::new(std::io::BufWriter::new(std::fs::File::create(&out).unwrap()), w, h);
         enc.set_color(png::ColorType::Rgba);
         enc.set_depth(png::BitDepth::Eight);
