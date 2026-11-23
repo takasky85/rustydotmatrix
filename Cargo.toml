@@ -1,0 +1,22 @@
+[package]
+name = "rustydotmatrix"
+version = "0.1.0"
+edition = "2021"
+description = "Proof of concept: view raw 9-pin dot matrix printer (ESC/P) data as dots, with zoom. Rust + egui + wgpu."
+
+[dependencies]
+# eframe 0.32 is pinned on purpose: the egui API changes between releases.
+eframe = { version = "0.32", default-features = false, features = [
+    "default_fonts",
+    "wgpu",
+    "x11",
+    "wayland",
+] }
+rfd = "0.15"
+
+# Keep debug builds usable: optimise dependencies (egui, wgpu) even in dev.
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+opt-level = 3
