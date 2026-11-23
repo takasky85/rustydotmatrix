@@ -35,7 +35,7 @@ cargo run --release
 On Debian/Ubuntu you may need:
 `sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev`
 
-GitHub Actions builds Windows, Linux and macOS (Apple Silicon) binaries on every push;
+GitHub Actions currently builds the Windows binary on every push;
 download them from the workflow run's **Artifacts**.
 
 ## Credits
